@@ -3,6 +3,7 @@ import shutil
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 print("===================================")
 print("VisionGuard AI Backend Started")
@@ -22,20 +23,18 @@ app.add_middleware(
 UPLOAD_FOLDER = Path("uploads")
 UPLOAD_FOLDER.mkdir(exist_ok=True)
 
+# Serve uploaded files
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 
 @app.get("/")
 def home():
-    return {
-        "message": "THIS IS THE NEW BACKEND",
-        "upload_folder": str(UPLOAD_FOLDER.resolve())
-    }
+    return {"message": "VisionGuard AI Backend Running"}
 
 
 @app.get("/api/test")
 def test():
-    return {
-        "status": "Backend Connected Successfully"
-    }
+    return {"status": "Backend Connected Successfully"}
 
 
 @app.post("/upload")
@@ -49,14 +48,9 @@ async def upload_video(file: UploadFile = File(...)):
         return {
             "success": True,
             "filename": file.filename,
+            "video_url": f"http://127.0.0.1:8000/uploads/{file.filename}",
             "message": "Video uploaded successfully"
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/uploads")
-def list_uploads():
-    files = [f.name for f in UPLOAD_FOLDER.iterdir() if f.is_file()]
-    return {"files": files}
