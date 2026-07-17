@@ -1,6 +1,20 @@
 import { useState } from "react";
 import axios from "axios";
 
+const labels: Record<string, string> = {
+  person: "👤 Person",
+  bicycle: "🚲 Bicycle",
+  car: "🚗 Car",
+  motorcycle: "🏍 Motorcycle",
+  bus: "🚌 Bus",
+  truck: "🚚 Truck",
+  backpack: "🎒 Backpack",
+  handbag: "👜 Handbag",
+  suitcase: "🧳 Suitcase",
+  laptop: "💻 Laptop",
+  "cell phone": "📱 Cell Phone",
+};
+
 function App() {
   const [file, setFile] = useState<File | null>(null);
 
@@ -8,6 +22,8 @@ function App() {
 
   const [originalVideo, setOriginalVideo] = useState("");
   const [processedVideo, setProcessedVideo] = useState("");
+
+  const [summary, setSummary] = useState<Record<string, number>>({});
 
   const [loading, setLoading] = useState(false);
 
@@ -30,9 +46,9 @@ function App() {
       );
 
       setMessage(res.data.message);
-
       setOriginalVideo(res.data.original_video);
       setProcessedVideo(res.data.processed_video);
+      setSummary(res.data.summary || {});
     } catch (err) {
       console.error(err);
       alert("Upload failed.");
@@ -44,17 +60,14 @@ function App() {
   return (
     <div
       style={{
-        maxWidth: "900px",
+        maxWidth: "1100px",
         margin: "40px auto",
         textAlign: "center",
         fontFamily: "Arial, sans-serif",
       }}
     >
       <h1>🛡️ VisionGuard AI</h1>
-
-      <p>
-        Intelligent CCTV Investigation Assistant using AI
-      </p>
+      <p>Intelligent CCTV Investigation Assistant using AI</p>
 
       <input
         type="file"
@@ -73,9 +86,10 @@ function App() {
         onClick={uploadVideo}
         disabled={loading}
         style={{
-          padding: "10px 25px",
+          padding: "12px 28px",
           cursor: "pointer",
           fontSize: "16px",
+          borderRadius: "8px",
         }}
       >
         {loading ? "Processing Video..." : "Upload & Detect"}
@@ -84,9 +98,7 @@ function App() {
       <br />
       <br />
 
-      {loading && (
-        <h3>🔍 Running YOLO Object Detection...</h3>
-      )}
+      {loading && <h3>🔍 Running YOLOv8 AI Detection...</h3>}
 
       <h3>{message}</h3>
 
@@ -96,15 +108,8 @@ function App() {
 
           <h2>📹 Original Video</h2>
 
-          <video
-            width="800"
-            controls
-            style={{
-              borderRadius: "10px",
-            }}
-          >
+          <video width="850" controls style={{ borderRadius: "10px" }}>
             <source src={originalVideo} type="video/mp4" />
-            Your browser does not support the video tag.
           </video>
         </>
       )}
@@ -115,16 +120,59 @@ function App() {
 
           <h2>🤖 AI Detection Result</h2>
 
-          <video
-            width="800"
-            controls
+          <video width="850" controls style={{ borderRadius: "10px" }}>
+            <source src={processedVideo} type="video/mp4" />
+          </video>
+        </>
+      )}
+
+      {Object.keys(summary).length > 0 && (
+        <>
+          <hr />
+
+          <h2>📊 CCTV Detection Dashboard</h2>
+
+          <div
             style={{
-              borderRadius: "10px",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
+              gap: "18px",
+              marginTop: "25px",
             }}
           >
-            <source src={processedVideo} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+            {Object.entries(summary).map(([name, count]) => (
+              <div
+                key={name}
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "15px",
+                  padding: "22px",
+                  border: "1px solid #ddd",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                }}
+              >
+                <h3
+                  style={{
+                    marginBottom: "12px",
+                    color: "#333",
+                    fontSize: "18px",
+                  }}
+                >
+                  {labels[name] || name}
+                </h3>
+
+                <div
+                  style={{
+                    fontSize: "38px",
+                    fontWeight: "bold",
+                    color: count > 0 ? "#007BFF" : "#999",
+                  }}
+                >
+                  {count}
+                </div>
+              </div>
+            ))}
+          </div>
         </>
       )}
     </div>

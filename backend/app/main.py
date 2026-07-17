@@ -35,7 +35,7 @@ UPLOAD_FOLDER.mkdir(exist_ok=True)
 OUTPUT_FOLDER.mkdir(exist_ok=True)
 
 # ----------------------------
-# Serve Static Files
+# Static Files
 # ----------------------------
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
@@ -80,8 +80,11 @@ async def upload_video(file: UploadFile = File(...)):
 
         print(f"Video Uploaded: {save_path}")
 
-        # Run YOLO Detection
-        processed_path = detect_objects(str(save_path))
+        # Run Detection
+        result = detect_objects(str(save_path))
+
+        processed_path = result["video_path"]
+        summary = result["summary"]
 
         processed_name = Path(processed_path).name
 
@@ -96,7 +99,9 @@ async def upload_video(file: UploadFile = File(...)):
                 f"http://127.0.0.1:8000/uploads/{file.filename}",
 
             "processed_video":
-                f"http://127.0.0.1:8000/outputs/{processed_name}"
+                f"http://127.0.0.1:8000/outputs/{processed_name}",
+
+            "summary": summary
         }
 
     except Exception as e:
