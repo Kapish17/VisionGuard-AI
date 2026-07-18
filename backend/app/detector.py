@@ -46,10 +46,7 @@ def detect_objects(video_path: str):
 
     frame_count = 0
 
-    # Maximum simultaneous detections
-    max_counts = {}
-
-    # Dashboard always shows these classes
+    # Dashboard
     summary = {
         "person": 0,
         "bicycle": 0,
@@ -63,6 +60,20 @@ def detect_objects(video_path: str):
         "cell phone": 0,
     }
 
+    # Store unique tracking IDs
+    unique_objects = {
+        "person": set(),
+        "bicycle": set(),
+        "car": set(),
+        "motorcycle": set(),
+        "bus": set(),
+        "truck": set(),
+        "backpack": set(),
+        "handbag": set(),
+        "suitcase": set(),
+        "cell phone": set(),
+    }
+
     while True:
 
         ret, frame = cap.read()
@@ -70,8 +81,10 @@ def detect_objects(video_path: str):
         if not ret:
             break
 
-        results = model(
+        results = model.track(
             frame,
+            persist=True,
+            tracker="bytetrack.yaml",
             conf=0.60,
             iou=0.45,
             classes=[0, 1, 2, 3, 5, 7, 24, 26, 28, 67],
@@ -80,19 +93,24 @@ def detect_objects(video_path: str):
 
         result = results[0]
 
-        current_counts = {}
-
         if result.boxes is not None:
+
             for box in result.boxes:
+
+                # Skip if tracker has not assigned an ID yet
+                if box.id is None:
+                    continue
+
                 cls = int(box.cls[0])
                 class_name = model.names[cls]
 
-                current_counts[class_name] = current_counts.get(class_name, 0) + 1
+                # Ignore unexpected classes
+                if class_name not in unique_objects:
+                    continue
 
-        # Keep maximum simultaneous count
-        for cls_name, count in current_counts.items():
-            if count > max_counts.get(cls_name, 0):
-                max_counts[cls_name] = count
+                track_id = int(box.id[0])
+
+                unique_objects[class_name].add(track_id)
 
         annotated = result.plot()
 
@@ -106,13 +124,15 @@ def detect_objects(video_path: str):
     cap.release()
     writer.release()
 
-    # Update dashboard values
+    # Convert sets into counts
     for key in summary.keys():
-        summary[key] = max_counts.get(key, 0)
+        summary[key] = len(unique_objects[key])
 
     print("\n===== Detection Summary =====")
+
     for name, count in summary.items():
         print(f"{name}: {count}")
+
     print("=============================\n")
 
     return {
